@@ -2,7 +2,7 @@ use std::iter::FromIterator;
 
 use crate::key::Key;
 use crate::repr::Decor;
-use crate::table::{Iter, IterMut, KeyValuePairs, TableLike};
+use crate::table::{Iter, IterMut, KeyValuePairs, TableLike, sort_values_by_position};
 use crate::{InternalString, Item, KeyMut, RawString, Table, Value};
 
 /// Type representing a TOML inline table,
@@ -75,6 +75,7 @@ impl InlineTable {
                 _ => {}
             }
         }
+        sort_values_by_position(values);
     }
 
     /// Auto formats the table.

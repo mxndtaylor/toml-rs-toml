@@ -96,6 +96,7 @@ impl Table {
                 _ => {}
             }
         }
+        sort_values_by_position(values);
     }
 
     /// Auto formats the table.
@@ -516,6 +517,18 @@ fn decorate_table(table: &mut Table) {
         key.dotted_decor_mut().clear();
         value.decor_mut().clear();
     }
+}
+
+pub(crate) fn sort_values_by_position<'s>(values: &mut Vec<(Vec<&'s Key>, &'s Value)>) {
+    values.sort_by(|(left_kp, _), (right_kp, _)| {
+        return match (left_kp.last().map(|x| x.position),
+                      right_kp.last().map(|x| x.position)) {
+            // first if both have Some() position, its easy
+            (Some(Some(p1)), Some(Some(p2))) => p1.cmp(&p2),
+            // if one or more do not, preserve order
+            _ => std::cmp::Ordering::Equal
+        }
+    });
 }
 
 // `key1 = value1`
