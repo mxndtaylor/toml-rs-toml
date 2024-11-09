@@ -217,6 +217,10 @@ key = "value"
 "#,
             r#"hello.world = "a"
 "#,
+            r#"hello.world = "a"
+goodbye = "b"
+hello.moon = "c"
+"#,
             r#"foo = 1979-05-27 # Comment
 "#,
         ];
