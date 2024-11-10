@@ -580,6 +580,42 @@ fn test_sort_values() {
 }
 
 #[test]
+fn test_sort_dotted_values() {
+    given(
+        r#"
+        [a.z]
+
+        [a]
+        a.b = 2
+        # this comment is attached to b
+        b = 3 # as well as this
+        a.a = 1
+        c = 4
+
+        [a.y]"#,
+    )
+        .running(|root| {
+            let a = root.get_mut("a").unwrap();
+            let a = as_table!(a);
+            a.sort_values();
+        })
+        .produces_display(str![[r#"
+
+        [a.z]
+
+        [a]
+        a.a = 1
+        a.b = 2
+        # this comment is attached to b
+        b = 3 # as well as this
+        c = 4
+
+        [a.y]
+
+"#]]);
+}
+
+#[test]
 fn test_sort_values_by() {
     given(
         r#"

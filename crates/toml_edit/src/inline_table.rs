@@ -2,7 +2,7 @@ use std::iter::FromIterator;
 
 use crate::key::Key;
 use crate::repr::Decor;
-use crate::table::{Iter, IterMut, KeyValuePairs, TableLike, sort_values_by_position};
+use crate::table::{Iter, IterMut, KeyValuePairs, TableLike, sort_values_by_position, modify_key_position};
 use crate::{InternalString, Item, KeyMut, RawString, Table, Value};
 
 /// Type representing a TOML inline table,
@@ -87,14 +87,14 @@ impl InlineTable {
     pub fn sort_values(&mut self) {
         // Assuming standard tables have their position set and this won't negatively impact them
         self.items.sort_keys();
-        for value in self.items.values_mut() {
+        modify_key_position(&mut self.items,|value| {
             match value {
                 Item::Value(Value::InlineTable(table)) if table.is_dotted() => {
                     table.sort_values();
                 }
                 _ => {}
             }
-        }
+        });
     }
 
     /// Sort Key/Value Pairs of the table using the using the comparison function `compare`.
@@ -123,14 +123,14 @@ impl InlineTable {
             };
 
         self.items.sort_by(modified_cmp);
-        for value in self.items.values_mut() {
+        modify_key_position(&mut self.items,|value| {
             match value {
                 Item::Value(Value::InlineTable(table)) if table.is_dotted() => {
                     table.sort_values_by_internal(compare);
                 }
                 _ => {}
             }
-        }
+        });
     }
 
     /// If a table has no key/value pairs and implicit, it will not be displayed.

@@ -1,6 +1,6 @@
 use std::iter::FromIterator;
 
-use indexmap::map::IndexMap;
+use indexmap::map::{IndexMap, MutableKeys};
 
 use crate::key::Key;
 use crate::repr::Decor;
@@ -110,14 +110,14 @@ impl Table {
     pub fn sort_values(&mut self) {
         // Assuming standard tables have their doc_position set and this won't negatively impact them
         self.items.sort_keys();
-        for value in self.items.values_mut() {
+        modify_key_position(&mut self.items,|value| {
             match value {
                 Item::Table(table) if table.is_dotted() => {
                     table.sort_values();
                 }
                 _ => {}
             }
-        }
+        });
     }
 
     /// Sort Key/Value Pairs of the table using the using the comparison function `compare`.
@@ -142,14 +142,14 @@ impl Table {
 
         self.items.sort_by(modified_cmp);
 
-        for value in self.items.values_mut() {
+       modify_key_position(&mut self.items,|value| {
             match value {
                 Item::Table(table) if table.is_dotted() => {
                     table.sort_values_by_internal(compare);
                 }
                 _ => {}
             }
-        }
+        });
     }
 
     /// If a table has no key/value pairs and implicit, it will not be displayed.
@@ -529,6 +529,16 @@ pub(crate) fn sort_values_by_position<'s>(values: &mut Vec<(Vec<&'s Key>, &'s Va
             _ => std::cmp::Ordering::Equal
         }
     });
+}
+
+pub(crate) fn modify_key_position<F>(items: &mut KeyValuePairs, mut recursive_step: F)
+where
+    F: FnMut(&mut Item),
+{
+    for (pos, (key, value)) in items.iter_mut2().enumerate() {
+        key.set_position(Some(pos));
+        recursive_step(value);
+    }
 }
 
 // `key1 = value1`
