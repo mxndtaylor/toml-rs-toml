@@ -26,8 +26,12 @@ struct Test {
 
 fn given(input: &str) -> Test {
     let doc = input.parse::<DocumentMut>();
-    assert!(doc.is_ok());
-    Test { doc: doc.unwrap() }
+    match doc {
+        Err(e) => panic!("{}", e),
+        _ => Test { doc: doc.unwrap() }
+    }
+    // assert!(doc.is_ok());
+    // Test { doc: doc.unwrap() }
 }
 
 impl Test {
@@ -1061,4 +1065,73 @@ name = "test.swf"
 
 "#]]
     );
+}
+
+#[test]
+fn insert_key_with_position() {
+    given(r#"foo.bar = 1
+
+foo.baz.qwer = "a"
+goodbye = { forever="no" }
+
+foo.pub = 2
+foo.baz.asdf = "b"
+"#)
+    .running_on_doc(|doc| {
+        let root = doc.as_table_mut();
+        let (_, foo_v) = root.get_key_value_mut("foo").unwrap();
+        let foo = as_table!(foo_v);
+        let (_, foo_baz_v) = foo.get_key_value_mut("baz").unwrap();
+        let foo_baz = as_table!(foo_baz_v);
+
+        let foo_baz_asdf_v = foo_baz.remove("asdf").unwrap();
+        let foo_baz_asdf_k = Key::new("asdf").with_position(Some(0));
+
+        let foo_baz_asdf_k = foo_baz_asdf_k.with_position(Some(0));
+
+        foo_baz.insert_formatted(&foo_baz_asdf_k, foo_baz_asdf_v);
+    })
+    .produces_display(str![[r#"foo.bar = 1
+foo.baz.asdf = "b"
+
+foo.baz.qwer = "a"
+goodbye = { forever="no" }
+
+foo.pub = 2
+
+"#]]);
+}
+
+#[test]
+fn insert_key_with_position_none() {
+    given(r#"foo.bar = 1
+
+foo.baz.qwer = "a"
+goodbye = { forever="no" }
+
+foo.pub = 2
+foo.baz.asdf = "b"
+"#)
+    .running_on_doc(|doc| {
+        let root = doc.as_table_mut();
+        let (_, foo_v) = root.get_key_value_mut("foo").unwrap();
+        let foo = as_table!(foo_v);
+        let (_, foo_baz_v) = foo.get_key_value_mut("baz").unwrap();
+        let foo_baz = as_table!(foo_baz_v);
+
+        let foo_baz_asdf_v = foo_baz.remove("qwer").unwrap();
+        let foo_baz_asdf_k = Key::new("qwer").with_position(Some(0));
+
+        let foo_baz_asdf_k = foo_baz_asdf_k.clone().with_position(None);
+
+        foo_baz.insert_formatted(&foo_baz_asdf_k, foo_baz_asdf_v);
+    })
+    .produces_display(str![[r#"foo.bar = 1
+goodbye = { forever="no" }
+
+foo.pub = 2
+foo.baz.asdf = "b"
+foo.baz.qwer = "a"
+
+"#]]);
 }
