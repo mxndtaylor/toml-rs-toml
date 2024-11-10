@@ -168,7 +168,7 @@ impl Key {
 
     /// Get the position relative to other keys in parent table
     pub fn position(&self) -> Option<usize> {
-        return self.position;
+        self.position
     }
 
     /// Set the position relative to other keys in parent table
@@ -208,7 +208,7 @@ impl Clone for Key {
             repr: self.repr.clone(),
             leaf_decor: self.leaf_decor.clone(),
             dotted_decor: self.dotted_decor.clone(),
-            position: self.position.clone(),
+            position: self.position,
         }
     }
 }

@@ -519,7 +519,7 @@ fn decorate_table(table: &mut Table) {
     }
 }
 
-pub(crate) fn sort_values_by_position<'s>(values: &mut Vec<(Vec<&'s Key>, &'s Value)>) {
+pub(crate) fn sort_values_by_position<'s>(values: &mut [(Vec<&'s Key>, &'s Value)]) {
     values.sort_by(|(left_kp, _), (right_kp, _)| {
         return match (left_kp.last().map(|x| x.position),
                       right_kp.last().map(|x| x.position)) {
