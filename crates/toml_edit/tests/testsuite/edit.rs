@@ -1087,8 +1087,6 @@ foo.baz.asdf = "b"
         let foo_baz_asdf_v = foo_baz.remove("asdf").unwrap();
         let foo_baz_asdf_k = Key::new("asdf").with_position(Some(0));
 
-        let foo_baz_asdf_k = foo_baz_asdf_k.with_position(Some(0));
-
         foo_baz.insert_formatted(&foo_baz_asdf_k, foo_baz_asdf_v);
     })
     .produces_display(str![[r#"foo.bar = 1
@@ -1120,9 +1118,7 @@ foo.baz.asdf = "b"
         let foo_baz = as_table!(foo_baz_v);
 
         let foo_baz_asdf_v = foo_baz.remove("qwer").unwrap();
-        let foo_baz_asdf_k = Key::new("qwer").with_position(Some(0));
-
-        let foo_baz_asdf_k = foo_baz_asdf_k.clone().with_position(None);
+        let foo_baz_asdf_k = Key::new("qwer").with_position(None);
 
         foo_baz.insert_formatted(&foo_baz_asdf_k, foo_baz_asdf_v);
     })
