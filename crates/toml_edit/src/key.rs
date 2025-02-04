@@ -441,6 +441,39 @@ impl<'k> std::fmt::Display for KeyMut<'k> {
     }
 }
 
+pub(crate) struct InternalKey {
+    core: Key,
+    position: usize,
+}
+
+pub(crate) trait PositionedKey {
+    fn key(self) -> Key;
+    fn position(&self) -> usize;
+}
+
+pub(crate) trait OrdersKeys<K>
+where
+    K: PositionedKey
+{
+    fn accept(&mut self, key: K);
+}
+
+impl InternalKey {
+    pub(crate) fn insert(self, index: &mut impl OrdersKeys<InternalKey>) {
+        index.accept(self)
+    }
+}
+
+impl PositionedKey for InternalKey {
+    fn key(self) -> Key {
+        self.core
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+}
+
 #[test]
 #[cfg(feature = "parse")]
 #[cfg(feature = "display")]
