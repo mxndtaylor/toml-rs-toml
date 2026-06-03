@@ -1,5 +1,3 @@
-use crate::Iter;
-
 pub(crate) trait EntryCore<K, I> : Sized {
     /// gets the key as represented by this entry
     fn key(&self) -> &K;
@@ -11,7 +9,7 @@ pub(crate) trait EntryCore<K, I> : Sized {
     fn remove(&mut self) -> Option<(K, I)>;
 }
 
-pub(crate) trait OccupiedEntryCore<K, I> : EntryCore<K, I> {
+pub(crate) trait OccupiedEntryCore<K, I> : Sized {
     fn get_full(&self) -> (&K, &I);
     fn get_full_mut(&mut self) -> (&K, &mut I);
     fn get_full_mut2(&mut self) -> (&mut K, &mut I);
@@ -24,9 +22,44 @@ pub(crate) trait OccupiedEntryCore<K, I> : EntryCore<K, I> {
     fn get_mut(&mut self) -> &mut I {
         self.get_full_mut().1
     }
+    fn occ_insert(&mut self, value: I) -> I;
+    fn remove(&mut self) -> (K, I);
 }
 
-pub(crate) trait VacantEntryCore<K, I> : EntryCore<K, I> {
+pub(crate) trait VacantEntryCore<K, I> : Sized {
+    fn key(&self) -> &K;
+    fn vac_insert(&mut self, value: I) -> &mut I;
+}
+
+impl<O, K, I> EntryCore<K, I> for O
+where
+    O: OccupiedEntryCore<K, I>
+{
+    fn key(&self) -> &K {
+        self.key()
+    }
+
+    fn insert(&mut self, value: I) -> Result<I, &mut I> {
+        Ok(self.occ_insert(value))
+    }
+
+    fn remove(&mut self) -> Option<(K, I)> {
+        Some(self.remove())
+    }
+}
+
+impl<V, K, I> EntryCore<K, I> for V
+where
+    V: VacantEntryCore<K, I>,
+{
+    fn key(&self) -> &K {
+        self.key()
+    }
+
+    fn insert(&mut self, value: I) -> Result<I, &mut I> {
+        Err(self.vac_insert(value))
+    }
+
     fn remove(&mut self) -> Option<(K, I)> {
         None
     }
@@ -41,16 +74,16 @@ where
     fn get_ref(&self) -> Result<&O, &V>;
     fn get_mut(&mut self) -> Result<&mut O, &mut V>;
     fn remove(self) -> Result<O, V>;
-    fn or_insert(&mut self, default: V) -> &mut V {
+    fn or_insert(&mut self, default: V) -> &mut I {
         self.or_insert_with(|| { default })
     }
-    fn or_insert_with<F>(&mut self, default_factory: F) -> &mut V
+    fn or_insert_with<F>(&mut self, default_factory: F) -> &mut I
     where
-        F: FnOnce() -> V,
+        F: FnOnce() -> I,
     {
         match self.get_mut() {
             Ok(occ) => occ.get_mut(),
-            Err(vac) => vac.insert(default_factory()),
+            Err(vac) => vac.vac_insert(default_factory()),
         }
     }
     fn is_occupied(&self) -> bool {
@@ -76,15 +109,14 @@ where
     }
 
     fn insert(&mut self, value: I) -> &mut I {
-        let entry = match self.get_mut() {
-            Ok(occ) => occ,
-            Err(vac) => vac,
-        };
-        entry.insert(value)
+        match self.get_mut() {
+            Ok(occ) => occ.get_mut(),
+            Err(vac) => vac.vac_insert(value),
+        }
     }
 
     fn remove(&mut self) -> Option<(K, I)> {
-        let entry = match self.get_mut() {
+        let entry: &mut dyn EntryCore<K, I> = match self.get_mut() {
             Ok(occ) => occ,
             Err(vac) => vac,
         };
@@ -206,7 +238,14 @@ where
     }
 
     fn insert(&mut self, key: K, value: I) -> Option<I> {
-        self.pair_mut(key)
+        let entry = match self.pair_mut(key).get_mut() {
+            Ok(o) => o,
+            Err(v) => v,
+        };
+        match entry.insert(value) {
+            Ok(i) => Some(i),
+            Err(_) => None,
+        }
     }
 
     fn remove_key_value(&mut self, key: &K) -> Option<(K, I)> {

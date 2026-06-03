@@ -3,10 +3,16 @@ use crate::{InlineTable, Item, Key, Table, Value};
 
 use crate::table::KeyValuePairs;
 
-/// GetTableValues provides the logic for displaying a table's items in their parsed order
-pub(crate) trait GetTableValues {
+pub(crate) trait TableIndex {
     fn items(&self) -> &KeyValuePairs;
+}
 
+pub(crate) trait TableIndexMut {
+    fn items_mut(&mut self) -> &mut KeyValuePairs;
+}
+
+/// GetTableValues provides the logic for displaying a table's items in their parsed order
+pub(crate) trait GetTableValues : TableIndex {
     fn get_values(&self) -> Vec<(Vec<&Key>, &Value)> {
         let mut values = Vec::new();
         let root = Vec::new();
@@ -39,9 +45,7 @@ pub(crate) trait GetTableValues {
 }
 
 /// SortTable provides the logic for sorting a table's items by its keys
-pub(crate) trait SortTable {
-    fn items_mut(&mut self) -> &mut KeyValuePairs;
-
+pub(crate) trait SortTable : TableIndexMut {
     fn sort_values(&mut self) {
         // Assuming standard tables have their doc_position set and this won't negatively impact them
         self.items_mut().sort_keys();
@@ -153,27 +157,41 @@ impl TryFrom<&Item> for Value {
 
 }
 
-impl GetTableValues for Table {
-    fn items(&self) -> &KeyValuePairs {
-        &self.items
-    }
-}
-impl GetTableValues for InlineTable {
+impl TableIndex for Table {
     fn items(&self) -> &KeyValuePairs {
         &self.items
     }
 }
 
-impl SortTable for Table {
-    fn items_mut(&mut self) -> &mut KeyValuePairs {
-        &mut self.items
-    }
-}
-impl SortTable for InlineTable {
+impl TableIndexMut for Table {
     fn items_mut(&mut self) -> &mut KeyValuePairs {
         &mut self.items
     }
 }
 
-impl SortTableBy<Item> for Table {}
-impl SortTableBy<Value> for InlineTable {}
+impl TableIndex for InlineTable {
+    fn items(&self) -> &KeyValuePairs {
+        &self.items
+    }
+}
+
+impl TableIndexMut for InlineTable {
+    fn items_mut(&mut self) -> &mut KeyValuePairs {
+        &mut self.items
+    }
+}
+
+impl<T> GetTableValues for T
+where
+    T: TableIndex
+{ }
+
+impl<T> SortTable for T
+where
+    T: TableIndexMut
+{ }
+
+impl<T> SortTableBy<Item> for T
+where
+    T: SortTable
+{ }
