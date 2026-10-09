@@ -358,16 +358,12 @@ impl Table {
 
     /// Returns an optional reference to an item given the key.
     pub fn get<'a>(&'a self, key: &str) -> Option<&'a Item> {
-        self.items
-            .get(key)
-            .and_then(|value| if !value.is_none() { Some(value) } else { None })
+        self.items.get(key).filter(|value| !value.is_none())
     }
 
     /// Returns an optional mutable reference to an item given the key.
     pub fn get_mut<'a>(&'a mut self, key: &str) -> Option<&'a mut Item> {
-        self.items
-            .get_mut(key)
-            .and_then(|value| if !value.is_none() { Some(value) } else { None })
+        self.items.get_mut(key).filter(|value| !value.is_none())
     }
 
     /// Return references to the key-value pair stored for key, if it is present, else None.
@@ -492,7 +488,11 @@ impl std::fmt::Display for Table {
         let children = self.get_values();
         // print table body
         for (key_path, value) in children {
-            crate::encode::encode_key_path_ref(&key_path, f, None, DEFAULT_KEY_DECOR)?;
+            let leaf_decor = key_path
+                .last()
+                .expect("always at least one key")
+                .leaf_decor();
+            crate::encode::encode_key_path(&key_path, f, None, DEFAULT_KEY_DECOR, leaf_decor)?;
             write!(f, "=")?;
             crate::encode::encode_value(value, f, None, DEFAULT_VALUE_DECOR)?;
             writeln!(f)?;

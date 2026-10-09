@@ -1,5 +1,9 @@
 #![allow(elided_lifetimes_in_paths)]
 
+#[cfg(feature = "alloc-profiler")]
+#[global_allocator]
+static ALLOC: divan::AllocProfiler = divan::AllocProfiler::system();
+
 mod toml_parser {
     use toml_benchmarks::{Data, MANIFESTS};
 
@@ -89,6 +93,15 @@ mod toml_edit {
     }
 
     #[divan::bench(args=MANIFESTS)]
+    fn dump(bencher: divan::Bencher, sample: &Data<'static>) {
+        let document = sample
+            .content()
+            .parse::<::toml_edit::DocumentMut>()
+            .unwrap();
+        bencher.bench(|| std::hint::black_box(&document).to_string());
+    }
+
+    #[divan::bench(args=MANIFESTS)]
     fn manifest(sample: &Data<'static>) -> manifest::Manifest {
         ::toml_edit::de::from_str(sample.content()).unwrap()
     }
@@ -118,6 +131,12 @@ mod toml {
     }
 
     #[divan::bench(args=MANIFESTS)]
+    fn dump(bencher: divan::Bencher, sample: &Data<'static>) {
+        let document = sample.content().parse::<::toml::Table>().unwrap();
+        bencher.bench(|| ::toml::to_string(std::hint::black_box(&document)).unwrap());
+    }
+
+    #[divan::bench(args=MANIFESTS)]
     fn manifest(sample: &Data<'static>) -> manifest::Manifest {
         ::toml::de::from_str(sample.content()).unwrap()
     }
@@ -129,6 +148,12 @@ mod toml_v05 {
     #[divan::bench(args=MANIFESTS)]
     fn document(sample: &Data<'static>) -> ::toml_old::Value {
         sample.content().parse().unwrap()
+    }
+
+    #[divan::bench(args=MANIFESTS)]
+    fn dump(bencher: divan::Bencher, sample: &Data<'static>) {
+        let document = sample.content().parse::<::toml_old::Value>().unwrap();
+        bencher.bench(|| ::toml_old::to_string(std::hint::black_box(&document)).unwrap());
     }
 
     #[divan::bench(args=MANIFESTS)]
@@ -152,6 +177,12 @@ mod serde_json {
             .bench_values(|sample| {
                 serde_json::from_str::<::toml::Value>(sample.content()).unwrap()
             });
+    }
+
+    #[divan::bench(args=MANIFESTS)]
+    fn dump(bencher: divan::Bencher, sample: &Data<'static>) {
+        let document = toml_edit::de::from_str::<::serde_json::Value>(sample.content()).unwrap();
+        bencher.bench(|| ::serde_json::to_string(std::hint::black_box(&document)).unwrap());
     }
 
     #[divan::bench(args=MANIFESTS)]

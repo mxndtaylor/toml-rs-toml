@@ -59,6 +59,78 @@ impl Test {
 }
 
 #[test]
+fn parsed_document_outlives_input() {
+    let input = r#"# leading comment
+[ parent . 'child' ] # header
+value = { dotted . key = [ 1, 2, ], other = 'text' } # value
+
+[[ parent . 'entries' ]] # first
+name = "first"
+
+[[ parent . 'entries' ]] # second
+name = "second"
+# trailing comment
+"#;
+    let mut document = {
+        let owned = input.to_owned();
+        owned.parse::<DocumentMut>().unwrap()
+    };
+    assert_eq!(document.to_string(), input);
+
+    let name = document["parent"]["entries"][1]["name"]
+        .as_value_mut()
+        .unwrap();
+    let decor = name.decor().clone();
+    *name = Value::from("updated");
+    *name.decor_mut() = decor;
+    assert_eq!(
+        document.to_string(),
+        input.replace("\"second\"", "\"updated\"")
+    );
+}
+
+#[test]
+fn parse_error_outlives_input() {
+    let error = {
+        let input = String::from("[table]\nkey = 1\n[table]\nkey = 2\n");
+        input.parse::<DocumentMut>().unwrap_err()
+    };
+    assert_eq!(error.message(), "duplicate key");
+    assert!(error.to_string().contains("[table]"));
+}
+
+#[test]
+fn document_display_propagates_write_errors() {
+    use std::fmt::Write as _;
+
+    struct LimitedWriter(usize);
+
+    impl std::fmt::Write for LimitedWriter {
+        fn write_str(&mut self, s: &str) -> std::fmt::Result {
+            if s.len() > self.0 {
+                return Err(std::fmt::Error);
+            }
+            self.0 -= s.len();
+            Ok(())
+        }
+    }
+
+    let mut document = "# comment\r\n[table]\r\nvalue = { dotted.key = [1, 2] }\r\n"
+        .parse::<DocumentMut>()
+        .unwrap();
+    document["table"]["new key"] = value("new value");
+    let output = document.to_string();
+    assert!(!output.contains('\r'));
+    for limit in 0..output.len() {
+        let mut writer = LimitedWriter(limit);
+        assert!(write!(&mut writer, "{document}").is_err(), "{limit}");
+    }
+    let mut writer = LimitedWriter(output.len());
+    write!(&mut writer, "{document}").unwrap();
+    assert_eq!(writer.0, 0);
+}
+
+#[test]
 fn assign_whitespace() {
     let input = r#"
  # top comment

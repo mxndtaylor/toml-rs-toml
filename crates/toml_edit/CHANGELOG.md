@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.25.17] - 2026-10-09
+
+## [0.25.16] - 2026-10-08
+
+## [0.25.15] - 2026-09-11
+
+### Performance
+
+- Reduce allocations when rendering array of tables
+
+## [0.25.14] - 2026-09-10
+
+### Performance
+
+- Reduced allocations when parsing
+- Reduced allocations when rendering a TOML document
+- Speed up rendering of a TOML document
+
+## [0.25.13] - 2026-07-14
+
+### Fixes
+
+- Don't overflow when writing a string with more than 255 quotes in a row
+
 ## [0.25.12] - 2026-05-27
 
 ### Fixes
@@ -1009,7 +1033,12 @@ This release was sponsored by Futurewei
 - `array.push` now returns a `Result`.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/toml-rs/toml/compare/v0.25.12...HEAD
+[Unreleased]: https://github.com/toml-rs/toml/compare/v0.25.17...HEAD
+[0.25.17]: https://github.com/toml-rs/toml/compare/v0.25.16...v0.25.17
+[0.25.16]: https://github.com/toml-rs/toml/compare/v0.25.15...v0.25.16
+[0.25.15]: https://github.com/toml-rs/toml/compare/v0.25.14...v0.25.15
+[0.25.14]: https://github.com/toml-rs/toml/compare/v0.25.13...v0.25.14
+[0.25.13]: https://github.com/toml-rs/toml/compare/v0.25.12...v0.25.13
 [0.25.12]: https://github.com/toml-rs/toml/compare/v0.25.11...v0.25.12
 [0.25.11]: https://github.com/toml-rs/toml/compare/v0.25.10...v0.25.11
 [0.25.10]: https://github.com/toml-rs/toml/compare/v0.25.9...v0.25.10

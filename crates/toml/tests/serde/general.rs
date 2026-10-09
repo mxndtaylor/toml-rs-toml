@@ -1492,6 +1492,18 @@ fn table_type_enum_regression_issue_388() {
 }
 
 #[test]
+fn deserialize_datetime_from_value_issue_440() {
+    let input = "1979-05-27T07:32:00Z";
+    let value = crate::value_from_str::<crate::SerdeValue>(input).unwrap();
+
+    let json = value.clone().try_into::<serde_json::Value>().unwrap();
+    assert_eq!(json, serde_json::Value::String(input.to_owned()));
+
+    let datetime = value.try_into::<crate::Datetime>().unwrap();
+    assert_eq!(datetime.to_string(), input);
+}
+
+#[test]
 fn serialize_datetime_issue_333() {
     #[derive(Serialize)]
     struct Struct {
@@ -2168,4 +2180,45 @@ key = "value"
 
 "#]]
     );
+}
+
+#[test]
+fn attr_key() {
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    struct Config {
+        #[serde(rename = "cfg(target_os = \"linux\")")]
+        target_linux: Inner,
+        #[serde(rename = "io.containerd.grpc.v1.cri")]
+        containerd_cri: Inner,
+    }
+
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    struct Inner {
+        value: String,
+    }
+
+    let config = Config {
+        target_linux: Inner {
+            value: "some value".to_owned(),
+        },
+        containerd_cri: Inner {
+            value: "other value".to_owned(),
+        },
+    };
+
+    let toml_str = crate::to_string(&config).unwrap();
+    assert_data_eq!(
+        &toml_str,
+        str![[r#"
+['cfg(target_os = "linux")']
+value = "some value"
+
+["io.containerd.grpc.v1.cri"]
+value = "other value"
+
+"#]]
+    );
+
+    let roundtrip = crate::from_str::<Config>(&toml_str).unwrap();
+    assert_eq!(roundtrip, config);
 }

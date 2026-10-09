@@ -10,6 +10,7 @@ release = false
 
 [features]
 default = []
+alloc-profiler = []
 simd = ["toml_parser/simd"]
 unsafe = ["toml_parser/unsafe"]
 preserve_order = ["serde_json/preserve_order", "toml_old/preserve_order", "toml/preserve_order"]
@@ -38,6 +39,10 @@ harness = false
 
 [[bench]]
 name = "2-array"
+harness = false
+
+[[bench]]
+name = "3-keys"
 harness = false
 
 [lints]

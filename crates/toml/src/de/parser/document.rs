@@ -118,8 +118,6 @@ fn on_table<'i>(
     let mut current_path = None;
     let mut current_key = None;
     let mut current_span = open_event.span();
-    let mut current_prefix = None;
-    let mut current_suffix = None;
 
     while let Some(event) = input.next_token() {
         match event.kind() {
@@ -148,19 +146,11 @@ fn on_table<'i>(
                 break;
             }
             EventKind::SimpleKey => {
-                current_prefix.get_or_insert_with(|| event.span().before());
                 let (path, key) = on_key(event, input, source, errors);
                 current_path = Some(path);
                 current_key = key;
-                current_suffix.get_or_insert_with(|| event.span().after());
             }
-            EventKind::Whitespace => {
-                if current_key.is_some() {
-                    current_suffix = Some(event.span());
-                } else {
-                    current_prefix = Some(event.span());
-                }
-            }
+            EventKind::Whitespace => {}
         }
     }
 
@@ -262,7 +252,7 @@ impl<'i> State<'i> {
         let _scope = TraceScope::new("document::finish_table");
         let prev_table = core::mem::take(&mut self.current_table);
         if let Some(header) = self.current_header.take() {
-            let Some(key) = &header.key else {
+            let Some(key) = header.key else {
                 return;
             };
             let header_span = header.span.start()..header.span.end();
@@ -280,7 +270,8 @@ impl<'i> State<'i> {
                 anstyle::AnsiColor::Blue.on_default(),
             );
             if header.is_array {
-                let entry = parent_table.entry(key.clone()).or_insert_with(|| {
+                let key_span = get_key_span(&key);
+                let entry = parent_table.entry(key).or_insert_with(|| {
                     let mut array = DeArray::new();
                     array.set_array_of_tables(true);
                     Spanned::new(header_span, DeValue::Array(array))
@@ -295,7 +286,6 @@ impl<'i> State<'i> {
                         "is_array_of_tables=false",
                         anstyle::AnsiColor::Red.on_default(),
                     );
-                    let key_span = get_key_span(key);
                     let old_span = entry.span();
                     let old_span = toml_parser::Span::new_unchecked(old_span.start, old_span.end);
                     errors.report_error(
@@ -307,7 +297,7 @@ impl<'i> State<'i> {
                 };
                 array.push(prev_table);
             } else {
-                let existing = parent_table.insert(key.clone(), prev_table);
+                let existing = parent_table.insert(key, prev_table);
                 debug_assert!(existing.is_none());
             }
         } else {
